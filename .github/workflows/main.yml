@@ -347,20 +347,30 @@ jobs:
             -Uri "https://github.com/opencv/opencv/releases/download/$OpenCvVersion/$OpenCvArchive" `
             -OutFile $OpenCvArchive
           7z x $OpenCvArchive -oC:/opencv-sdk
-          Copy-Item "C:/opencv-sdk/opencv/LICENSE" data/LICENSE-opencv
+          Invoke-WebRequest `
+            -Uri "https://raw.githubusercontent.com/opencv/opencv/$OpenCvVersion/LICENSE" `
+            -OutFile data/LICENSE-opencv
+          $OpenCvConfig = Get-ChildItem C:/opencv-sdk -Filter OpenCVConfig.cmake -Recurse | `
+            Where-Object FullName -Match 'x64[\\/]vc[0-9]+[\\/]lib' | Select-Object -First 1
+          $OpenCvDll = Get-ChildItem C:/opencv-sdk -Filter opencv_world4130.dll -Recurse | Select-Object -First 1
+          if (!$OpenCvConfig -or !$OpenCvDll) {
+            throw "OpenCV SDK layout was not recognized"
+          }
+          "OpenCV_DIR=$($OpenCvConfig.Directory.FullName)" >> $env:GITHUB_ENV
+          "OpenCV_DLL=$($OpenCvDll.FullName)" >> $env:GITHUB_ENV
 
       - name: Build plugin
         run: |
           $CmakeArgs = @(
             '-G', "${{ env.visualStudio }}"
             '-DCMAKE_SYSTEM_VERSION=10.0.18363.657'
-            '-DOpenCV_DIR=C:/opencv-sdk/opencv/build/x64/vc16/lib'
+            "-DOpenCV_DIR=$env:OpenCV_DIR"
           )
           cmake -S . -B build @CmakeArgs ${{ steps.obsdeps.outputs.PLUGIN_CMAKE_OPTIONS_PS }}
           cmake --build build --config RelWithDebInfo -j 4
           cmake --install build --config RelWithDebInfo --prefix "$(Resolve-Path -Path .)/release"
           $PluginBin = "release/obs-plugins/64bit"
-          Copy-Item "C:/opencv-sdk/opencv/build/x64/vc16/bin/opencv_world4130.dll" $PluginBin
+          Copy-Item $env:OpenCV_DLL $PluginBin
       - name: Package plugin
         run: ci/windows/package-windows.cmd ${{ matrix.obs }}
       - name: Upload build artifact
