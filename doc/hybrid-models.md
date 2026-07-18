@@ -1,6 +1,12 @@
 # Hybrid Detector Model Setup
 
-The Hybrid detector combines YuNet (face detection) and NanoDet-Plus-m (body detection) for improved tracking reliability, especially with wide-angle sources.
+The Hybrid detector combines YuNet face detection and NanoDet-Plus-m body
+detection for improved reliability, especially with wide-angle sources.
+
+The Hybrid implementation in this fork was developed with assistance from
+GPT-5.6. It has been manually exercised on Apple Silicon with OBS 32.0.1;
+Windows, Intel macOS, and Linux currently have CI build coverage but no
+real-machine runtime validation.
 
 ## License Summary
 
@@ -14,7 +20,7 @@ licenses. Release packages include `LICENSE-YuNet` and `LICENSE-NanoDet`.
 
 ## Model Directory Structure
 
-```
+```text
 data/hybrid/
 ├── yunet/
 │   └── face_detection_yunet_2023mar.onnx
@@ -66,7 +72,7 @@ After building and installing the plugin:
 
 ## How It Works
 
-```
+```text
 Video Frame
   ├── YuNet (320×320) ─── face rectangles ──────┐
   │                                               ├── Merge ──→ Trackers
@@ -75,11 +81,13 @@ Video Frame
 ```
 
 - **YuNet** detects faces directly (accurate, used when face is visible)
-- **NanoDet** detects full human bodies, then estimates face position from the body box
+- **NanoDet** detects full human bodies, then estimates face position from the
+  body box
   (reliable when face is too small for face-only detection)
 - If YuNet finds faces, its real face boxes are preferred over body estimates.
 - The models run sequentially in the detector thread every ~2 seconds.
-- Between detections, dlib's correlation tracker follows the target frame-by-frame
+- Between detections, dlib's correlation tracker follows the target frame by
+  frame.
 
 ## Visualization Guide
 

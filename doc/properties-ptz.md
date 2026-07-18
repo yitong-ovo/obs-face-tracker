@@ -28,6 +28,11 @@ If you want to save only contol parameters (`Tracking response`), enable only th
 
 ## Face detection options
 
+The detector, model paths, target-box expansion, crop, scale, landmark, and
+threshold properties are shared with the normal Face Tracker filter. See
+[Face Tracker Properties](properties.md#face-detection-options) for the detector
+comparison and Hybrid behavior.
+
 ### Left, right, top, bottom
 These properties upsize (or downsize) the recognized face by multiple of the width or height.
 
@@ -36,11 +41,10 @@ The motivation is that the face recognition returns a rectangle that is smaller 
 The properties will be saved to and recalled from presets.
 
 ### Scale image
-The frame will be scaled before sending into face detection and tracking algorithm.
-Default is `2`.
-Larger value will reduce CPU usage but too large value will fail to detect faces.
-The face detection engine requires size of the faces at least 80x80.
-If you have low resolution image, it is highly recommended to set to `1`.
+The frame is downsampled before detection and tracking. `1` uses the original
+resolution and is best for small faces but consumes the most CPU. `2` is the
+recommended starting point. Larger values reduce CPU usage but increase missed
+detections.
 
 ### Crop left, right, top, and bottom for detector
 These properties crop the image before sending to the face detection algorithm.
@@ -181,13 +185,19 @@ Note that these features are automatically turned off when the source is display
 You can keep enable the checkboxes and keep monitoring the detection accuracy before the scene goes to the program.
 
 ### Show face detection results
-**Deprecated**
 If enabled, face detection and tracking results are shown.
-The face detection results are displayed in blue boxes.
-The Tracking results are displayed in green boxes.
+The colors and line styles are the same as the normal filter:
+
+| Color and style | Meaning |
+|-----------------|---------|
+| Yellow solid | YuNet face detection |
+| Blue dashed | NanoDet person detection; visualization only |
+| Green dotted | Face estimated from a person |
+| Red dashed | dlib HOG face detection |
+| Orange dotted | dlib CNN face detection |
+| Bright green solid | Active correlation tracker |
 
 ### Always show information
-**Deprecated**
 If enabled, debugging properties listed above are effective even if the source is displayed on the program.
 This will be useful to make a demonstration of face-tracker itself.
 

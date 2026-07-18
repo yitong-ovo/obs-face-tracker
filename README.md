@@ -2,21 +2,48 @@
 
 ## Introduction
 
-This plugin provide a feature to track face of a person by detecting and tracking a face.
+This plugin tracks a person in an OBS video source and automatically adjusts the
+crop or a PTZ camera to keep the subject framed.
 
 This plugin employs [dlib](http://dlib.net/) for object tracking. Face detection
 can use dlib or a wide-angle hybrid of YuNet face detection and NanoDet person
 detection.
 The frame of the source is periodically taken to face detection algorithm.
 Once a face is found, the face is tracked.
-Based on the location and the size of the face under tracking, the frame will be cropped.
+Based on the location and size of the tracked face, the frame is cropped.
+
+> [!IMPORTANT]
+> The new Hybrid detector, OpenCV integration, debug visualization, packaging,
+> Chinese localization, and related documentation were developed with assistance
+> from GPT-5.6. This code has been manually exercised on an Apple Silicon Mac
+> with OBS 32.0.1. Windows x64, Intel macOS, and Linux packages currently pass
+> CI builds, but have not been tested on real machines by the maintainer of this
+> fork. Treat those packages as experimental and report logs with any issue.
+
+See [Compatibility and test status](doc/compatibility.md) for the exact support
+and validation matrix.
+
+## Documentation
+
+- [Installation and configuration](doc/install-and-configure.md)
+- [Face Tracker properties](doc/properties.md)
+- [Face Tracker PTZ properties](doc/properties-ptz.md)
+- [Hybrid models and visualization](doc/hybrid-models.md)
+- [Troubleshooting](doc/troubleshooting.md)
+- [Build from source](doc/build-from-source.md)
+- [Release guide](doc/release-guide.md)
+- [Compatibility and test status](doc/compatibility.md)
+- [简体中文文档](doc/zh-CN/README.md)
 
 ## Usage
 
 For several use cases, total 3 methods are provided.
 
 ### Face Tracker Source
-The face tracker is implemented as a source. You can easily have another source that tracks and zooms into a face.
+
+The face tracker is implemented as a source. It creates another source that
+tracks and zooms into a face.
+
 1. Click the add button on the source list.
 2. Add `Face Tracker`.
 3. Scroll to the bottom and set `Source` property.
@@ -24,7 +51,10 @@ The face tracker is implemented as a source. You can easily have another source 
 See [Properties](doc/properties.md) for the description of each property.
 
 ### Face Tracker Filter
-The face tracker is implemented as an effect filter so that any video source can have the face tracker.
+
+The face tracker is implemented as an effect filter for an existing video
+source.
+
 1. Open filters for a source on OBS Studio.
 2. Click the add button on `Effect Filters`.
 3. Add `Face Tracker`.
@@ -32,7 +62,9 @@ The face tracker is implemented as an effect filter so that any video source can
 See [Properties](doc/properties.md) for the description of each property.
 
 ### Face Tracker PTZ
+
 Experimental version of PTZ control is provided as an video filter.
+
 1. Open filters for a source on OBS Studio,
 2. Click the add button on `Audio/Video Filters`.
 3. Add `Face Tracker PTZ`.
@@ -42,10 +74,6 @@ See [Properties](doc/properties-ptz.md) for the description of each property.
 See [Limitations](https://github.com/norihiro/obs-face-tracker/wiki/PTZ-Limitation)
 for current limitations of PTZ control feature.
 
-## Wiki
-- [Install procedure for macOS](https://github.com/norihiro/obs-face-tracker/wiki/Install-MacOS)
-- [FAQ](https://github.com/norihiro/obs-face-tracker/wiki/FAQ)
-
 ## Hybrid detector quick start
 
 Release packages include the YuNet and NanoDet models. Add the **Face Tracker**
@@ -54,114 +82,44 @@ detection (YuNet face + NanoDet person)**. See
 [Installation and configuration](doc/install-and-configure.md) for complete
 platform instructions and recommended settings.
 
-## Building
+## Builds and releases
 
-This plugin requires [dlib](http://dlib.net/) and OpenCV (core, imgproc, dnn,
-and objdetect) to be built.
-The `dlib` should be extracted under `obs-face-tracker` so that it will be linked statically.
-I modified `dlib` so that `openblasp` won't be linked but `openblas`.
-
-For macOS,
-install OpenBLAS and OpenCV and configure the path.
-```
-brew install openblas opencv
-export OPENBLAS_HOME=/usr/local/opt/openblas/
-```
-
-For Linux and macOS,
-expand `obs-face-tracker` outside `obs-studio` and build.
-```
-d0="$PWD"
-git clone https://github.com/obsproject/obs-studio.git
-mkdir obs-studio/build && cd obs-studio/build
-cmake ..
-make
-cd "$d0"
-
-git clone https://github.com/norihiro/obs-face-tracker.git
-cd obs-face-tracker
-git submodule update --init --recursive
-bash ci/download-models.sh
-mkdir build && cd build
-cmake .. \
-	-DLIBOBS_INCLUDE_DIR=$d0/obs-studio/libobs \
-	-DLIBOBS_LIB=$d0/obs-studio/libobs \
-	-DOBS_FRONTEND_LIB="$d0/obs-studio/build/UI/obs-frontend-api/libobs-frontend-api.dylib" \
-	-DCMAKE_BUILD_TYPE=RelWithDebInfo
-make
-```
-
-For Windows, see `.github/workflows/main.yml`.
-
-The GitHub Actions workflow builds Linux, macOS, and Windows artifacts. Pushing
-a version tag such as `v0.10.0` also creates a GitHub Release and attaches all
-packages after every platform build succeeds.
-
-## Preparing data file
-
-You need to prepare a model file.
-
-### HOG model file
-Once you have built on Linux or macOS, you will find an executable file `face-detector-dlib-hog-datagen`.
-
-Assuming your current directory is `obs-face-tracker`, run it like this.
-```shell
-mkdir data/dlib_hog_model/
-./build/face-detector-dlib-hog-datagen > ./data/dlib_hog_model/frontal_face_detector.dat
-```
-
-### CNN model file
-The CNN model file `mmod_human_face_detector.dat.bz2` can be downloaded from [dlib-models](https://github.com/davisking/dlib-models/).
-
-Assuming your current directory is `obs-face-tracker`, run commands like below.
-```shell
-mkdir data/dlib_cnn_model/
-git clone --depth 1 https://github.com/davisking/dlib-models
-bunzip2 < dlib-models/mmod_human_face_detector.dat.bz2 > data/dlib_cnn_model/mmod_human_face_detector.dat
-```
-
-### 5-point face landmark model file
-The 5-point face landmark model file `shape_predictor_5_face_landmarks.dat.bz2` can be downloaded from [dlib-models](https://github.com/davisking/dlib-models/).
-
-Assuming your current directory is `obs-face-tracker`, run commands like below.
-```shell
-mkdir data/dlib_face_landmark_model/
-git clone --depth 1 https://github.com/davisking/dlib-models
-bunzip2 < dlib-models/shape_predictor_5_face_landmarks.dat.bz2 > data/dlib_face_landmark_model/shape_predictor_5_face_landmarks.dat
-```
-
-### 68-point face landmark model file
-> [!NOTE]
-> The 68-point face landmark model is a non-free license.
-. Check [README](https://github.com/davisking/dlib-models/#shape_predictor_68_face_landmarksdatbz2) for the restriction.
-
-If you want to use the 68-point face landmark model file `shape_predictor_68_face_landmarks.dat.bz2`, run commands like below.
-```shell
-mkdir data/dlib_face_landmark_model/
-git clone --depth 1 https://github.com/davisking/dlib-models
-bunzip2 < dlib-models/shape_predictor_68_face_landmarks.dat.bz2 > data/dlib_face_landmark_model/shape_predictor_68_face_landmarks.dat
-```
-
-### Installing the model files
-Once you have prepared the model files under `data` directory,
-run `cd build && make install` so that the data file will be installed.
+GitHub Actions builds Ubuntu x86_64, macOS arm64, macOS x86_64, and Windows x64
+packages in the main workflow. A separate Docker workflow builds Fedora RPMs.
+A successful CI build proves that the package compiled and was assembled; it
+does not prove real-device compatibility. Pushes to `main` that change non-doc
+files, pull requests targeting `main`, and manual runs create temporary Actions
+artifacts. A version tag creates a GitHub Release after the main platform jobs
+pass. See the [Release guide](doc/release-guide.md).
 
 ## Known issues
-This plugin is heavily under development. So far these issues are under investigation.
+
+This plugin is heavily under development. These issues are under investigation:
+
 - Memory usage is gradually increasing when continuously detecting faces.
 - It consumes a lot of CPU resource.
 - The frame sometimes vibrates because the face detection results vibrates.
 
 ## License
+
 This plugin is licensed under GPLv2.
 
 ## Sponsor
-- [Jimcom USA](https://www.jimcom.us/?ref=2) - a company of Live Streaming and Content Recording Professionals.
+
+- [Jimcom USA](https://www.jimcom.us/?ref=2) - a company for live-streaming and
+  recording professionals.
   Development of PTZ camera control is supported by Jimcom.
-  Jimcom is now providing a 20% discount for their broadcast-quality network-connected PTZ cameras and free shipping in the USA.
-  Visit [Jimcom USA](https://www.jimcom.us/?ref=2) and enter the coupon code **FACETRACK20** when you order.
+  Jimcom provides a 20% discount for its broadcast-quality, network-connected
+  PTZ cameras and free shipping in the USA. Enter coupon code **FACETRACK20**.
 
 ## Acknowledgments
-- [dlib](http://dlib.net/) - [git hub repository](https://github.com/davisking/dlib)
-- [obz-ptz](https://github.com/glikely/obs-ptz) - PTZ camera control goes through this plugin.
+
+- [dlib](http://dlib.net/) - [GitHub repository](https://github.com/davisking/dlib)
+- [OpenCV](https://opencv.org/) and
+  [OpenCV Zoo](https://github.com/opencv/opencv_zoo)
+- [NanoDet](https://github.com/RangiLyu/nanodet)
+- [obs-ptz](https://github.com/glikely/obs-ptz) - optional PTZ control backend.
 - [OBS Project](https://obsproject.com/)
+- GPT-5.6 assisted with the new Hybrid implementation, packaging, localization,
+  and documentation in this fork. The resulting code remains subject to review
+  and real-platform testing.

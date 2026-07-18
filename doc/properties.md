@@ -28,6 +28,35 @@ If you want to save only contol parameters (`Tracking response`), enable only th
 
 ## Face detection options
 
+### Detector
+
+Select the periodic detection engine. Detection is different from the dlib
+correlation tracker, which follows a selected target between detection passes.
+
+| Detector | Recommended use | Notes |
+|----------|-----------------|-------|
+| dlib HOG | Close, mostly frontal faces | Fast legacy detector |
+| dlib CNN | Difficult close-face detection | Usually the slowest option |
+| Hybrid (YuNet + NanoDet) | Wide shots, full-body framing, and small faces | YuNet faces are preferred; NanoDet provides a person-based face estimate |
+
+In Hybrid mode, a NanoDet person rectangle is visualization-only. The tracker
+is initialized from a YuNet face or, when needed, the estimated face near the
+top of a person rectangle. It does not track the complete body rectangle as a
+face.
+
+### Model paths
+
+Release packages include the standard dlib, YuNet, and NanoDet models and fill
+the paths automatically. Select a file manually only when using a custom model,
+building locally, or repairing an empty path.
+
+| Property | Expected file |
+|----------|---------------|
+| Dlib HOG model | `frontal_face_detector.dat` |
+| Dlib CNN model | `mmod_human_face_detector.dat` |
+| YuNet model | `face_detection_yunet_2023mar.onnx` |
+| NanoDet model | `nanodet-plus-m_416.onnx` |
+
 ### Left, right, top, bottom
 These properties upsize (or downsize) the recognized face by multiple of the width or height.
 
@@ -36,11 +65,19 @@ The motivation is that the face recognition returns a rectangle that is smaller 
 The properties will be saved to and recalled from presets.
 
 ### Scale image
-The frame will be scaled before sending into face detection and tracking algorithm.
-Default is `2`.
-Larger value will reduce CPU usage but too large value will fail to detect faces.
-The face detection engine requires size of the faces at least 80x80.
-If you have low resolution image, it is highly recommended to set to `1`.
+The frame is downsampled before detection and correlation tracking. The default
+is `2`, meaning that width and height are each reduced to one half.
+
+| Value | Effect |
+|-------|--------|
+| `1` | Original resolution, highest CPU usage, best chance of detecting small faces |
+| `2` | Recommended starting point |
+| Larger than `2` | Lower CPU usage, but small faces are easier to miss |
+
+If a distant face is not detected, try `1`. If CPU usage is too high and the
+subject is close, try a larger value. The old rule that a face must be roughly
+80 by 80 detector pixels mainly applies to the dlib detectors; Hybrid can detect
+smaller faces but is still limited by the downsampled image.
 
 If your resolution is much smaller, make a intermediate scene and apply face tracker filter to the scene.
 1. Make a blank scene.
@@ -161,8 +198,18 @@ You can keep enable the checkboxes and keep monitoring the detection accuracy be
 
 ### Show face detection results
 If enabled, face detection and tracking results are shown.
-The face detection results are displayed in blue boxes.
-The Tracking results are displayed in green boxes.
+
+| Color and style | Meaning |
+|-----------------|---------|
+| Yellow solid | YuNet face detection |
+| Blue dashed | NanoDet person detection; visualization only |
+| Green dotted | Face position estimated from a NanoDet person |
+| Red dashed | dlib HOG face detection |
+| Orange dotted | dlib CNN face detection |
+| Bright green solid | Active dlib correlation tracker |
+
+Detection boxes update periodically. The bright green tracker box updates
+between detector passes and is the target used for framing.
 
 ### Stop tracking faces
 If enabled, whole image will be displayed and yellow box shows how cropped.

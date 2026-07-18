@@ -7,6 +7,25 @@ operating system and CPU. Packages created from a version tag contain the
 plugin, translations, YuNet, NanoDet, dlib models, and the corresponding model
 license files.
 
+> [!WARNING]
+> Windows x64, Intel macOS, and interactive Linux operation have not yet been
+> tested on real machines in this fork. Those packages pass CI builds only.
+> Apple Silicon with OBS 32.0.1 is the primary tested platform. See
+> [Compatibility and test status](compatibility.md).
+
+The new Hybrid implementation and supporting integration were developed with
+assistance from GPT-5.6 and remain experimental outside the tested platform.
+
+### Actions artifacts versus releases
+
+Manual runs, non-documentation pushes to `main`, and pull requests targeting
+`main` upload temporary files to the **Artifacts** section at the bottom of
+their Actions run. A tag build uploads the Ubuntu DEB, both macOS architectures,
+and Windows packages from the main workflow to a permanent GitHub Release.
+Fedora RPMs are built by a separate Docker workflow and are not currently
+collected by the automatic release job. GitHub wraps an artifact in an extra
+ZIP, so extract it once before opening the contained installer or package.
+
 ## macOS
 
 ### ZIP package
@@ -36,6 +55,15 @@ codesign --force --deep --sign - \
   "$HOME/Library/Application Support/obs-studio/plugins/obs-face-tracker.plugin"
 ```
 
+The PKG installs system-wide under:
+
+```text
+/Library/Application Support/obs-studio/plugins/obs-face-tracker.plugin
+```
+
+The ZIP instructions above use the per-user directory. Check the location that
+matches the installation method when upgrading, signing, or uninstalling.
+
 ## Windows
 
 1. Quit OBS.
@@ -52,6 +80,10 @@ Install the `.deb` package with its dependencies:
 ```bash
 sudo apt install ./obs-face-tracker-*.deb
 ```
+
+The CI package installs successfully and resolves its shared libraries on
+Ubuntu 22.04, but it has not yet been tested in an interactive Linux OBS
+session.
 
 ## Configure the filter
 
@@ -124,11 +156,15 @@ The `Plugin Build` workflow runs for pushes and pull requests. To publish a
 release, update the project version, commit it, then push a version tag:
 
 ```bash
-git tag v0.10.0
-git push origin main v0.10.0
+git tag -a v0.10.0 -m "v0.10.0"
+git push fork main
+git push fork v0.10.0
 ```
 
-After Linux, macOS, and Windows jobs succeed, GitHub Actions creates the Release
-and uploads all generated packages. macOS signing and notarization are used
-when the documented repository secrets are configured; otherwise the workflow
-still produces an unsigned development package.
+After the Ubuntu, macOS, and Windows jobs succeed, GitHub Actions creates the
+Release and uploads the packages from the main workflow. macOS signing and
+notarization run only when their complete secret sets are configured; otherwise
+the workflow produces an unsigned, non-notarized development package.
+
+For Actions enablement, artifacts, skipped release jobs, signing, and release
+notes, see the dedicated [Release guide](release-guide.md).
