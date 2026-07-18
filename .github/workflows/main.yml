@@ -341,24 +341,26 @@ jobs:
 
       - name: Install OpenCV
         run: |
-          vcpkg install opencv4[dnn]:x64-windows
-          Copy-Item "C:/vcpkg/installed/x64-windows/share/opencv4/copyright" data/LICENSE-opencv
+          $OpenCvVersion = "4.13.0"
+          $OpenCvArchive = "opencv-$OpenCvVersion-windows.exe"
+          Invoke-WebRequest `
+            -Uri "https://github.com/opencv/opencv/releases/download/$OpenCvVersion/$OpenCvArchive" `
+            -OutFile $OpenCvArchive
+          7z x $OpenCvArchive -oC:/opencv-sdk
+          Copy-Item "C:/opencv-sdk/opencv/LICENSE" data/LICENSE-opencv
 
       - name: Build plugin
         run: |
           $CmakeArgs = @(
             '-G', "${{ env.visualStudio }}"
             '-DCMAKE_SYSTEM_VERSION=10.0.18363.657'
-            '-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake'
-            '-DVCPKG_TARGET_TRIPLET=x64-windows'
+            '-DOpenCV_DIR=C:/opencv-sdk/opencv/build/x64/vc16/lib'
           )
           cmake -S . -B build @CmakeArgs ${{ steps.obsdeps.outputs.PLUGIN_CMAKE_OPTIONS_PS }}
           cmake --build build --config RelWithDebInfo -j 4
           cmake --install build --config RelWithDebInfo --prefix "$(Resolve-Path -Path .)/release"
           $PluginBin = "release/obs-plugins/64bit"
-          & "C:/vcpkg/scripts/buildsystems/msbuild/applocal.ps1" `
-            -targetBinary "$PluginBin/obs-face-tracker.dll" `
-            -installedDir "C:/vcpkg/installed/x64-windows/bin"
+          Copy-Item "C:/opencv-sdk/opencv/build/x64/vc16/bin/opencv_world4130.dll" $PluginBin
       - name: Package plugin
         run: ci/windows/package-windows.cmd ${{ matrix.obs }}
       - name: Upload build artifact
