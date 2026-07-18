@@ -3,6 +3,9 @@
 /build/
 /build32/
 /build64/
+/build-nodock/
+/deps/
+/data/hybrid/
 /release/
 /installer/Output/
 

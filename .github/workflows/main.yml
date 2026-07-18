@@ -14,6 +14,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 env:
   artifactName: ${{ contains(github.ref_name, '/') && 'artifact' || github.ref_name }}
 
@@ -59,12 +62,14 @@ jobs:
           set -ex
           DESTDIR='./' ci/download-dlib-models.sh
 
+      - name: Download Hybrid models
+        run: ci/download-models.sh
+
       - name: Build plugin
         run: |
           set -ex
           sudo apt install -y \
-            libopenblas-dev libopenblas0 \
-            || true
+            libopenblas-dev libopenblas0 libopencv-dev
           export OPENBLAS_HOME=/lib/x86_64-linux-gnu/
           cmake -S . -B build \
             -D CMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -100,7 +105,7 @@ jobs:
         include:
           - obs: 30
             arch: x86_64
-            macos: macos-13 # Intel x86_64
+            macos: macos-15-intel
           - obs: 30
             arch: arm64
             macos: macos-14 # Apple arm64
@@ -174,7 +179,7 @@ jobs:
 
       - name: Prepare dlib dependency
         run: |
-          brew install openblas
+          brew install openblas opencv
           for d in '/usr/local/opt/openblas/' '/opt/homebrew/opt/openblas/'; do
             if test -d "$d"; then
               OPENBLAS_HOME="$d"
@@ -183,6 +188,7 @@ jobs:
           done
           echo "OPENBLAS_HOME=$OPENBLAS_HOME" >> $GITHUB_ENV
           cp $OPENBLAS_HOME/LICENSE data/LICENSE-openblas
+          cp "$(brew --prefix opencv)/LICENSE" data/LICENSE-opencv
 
       - name: Download dlib-models
         run: |
@@ -196,6 +202,9 @@ jobs:
           bunzip2 < dlib-models/shape_predictor_5_face_landmarks.dat.bz2 > data/dlib_face_landmark_model/shape_predictor_5_face_landmarks.dat
           cp dlib/LICENSE.txt data/LICENSE-dlib
           cp dlib-models/LICENSE data/LICENSE-dlib-models
+
+      - name: Download Hybrid models
+        run: ci/download-models.sh
 
       - name: Build plugin
         run: |
@@ -325,15 +334,30 @@ jobs:
           cp dlib/LICENSE.txt data/LICENSE-dlib
           cp dlib-models/LICENSE data/LICENSE-dlib-models
 
+      - name: Download Hybrid models
+        shell: bash
+        run: ci/download-models.sh
+
+      - name: Install OpenCV
+        run: |
+          vcpkg install opencv4[dnn]:x64-windows
+          Copy-Item "C:/vcpkg/installed/x64-windows/share/opencv4/copyright" data/LICENSE-opencv
+
       - name: Build plugin
         run: |
           $CmakeArgs = @(
             '-G', "${{ env.visualStudio }}"
             '-DCMAKE_SYSTEM_VERSION=10.0.18363.657'
+            '-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake'
+            '-DVCPKG_TARGET_TRIPLET=x64-windows'
           )
           cmake -S . -B build @CmakeArgs ${{ steps.obsdeps.outputs.PLUGIN_CMAKE_OPTIONS_PS }}
           cmake --build build --config RelWithDebInfo -j 4
           cmake --install build --config RelWithDebInfo --prefix "$(Resolve-Path -Path .)/release"
+          $PluginBin = "release/obs-plugins/64bit"
+          & "C:/vcpkg/scripts/buildsystems/msbuild/applocal.ps1" `
+            -targetBinary "$PluginBin/obs-face-tracker.dll" `
+            -installedDir "C:/vcpkg/installed/x64-windows/bin"
       - name: Package plugin
         run: ci/windows/package-windows.cmd ${{ matrix.obs }}
       - name: Upload build artifact
@@ -341,3 +365,21 @@ jobs:
         with:
           name: ${{ env.artifactName }}-windows-obs${{ matrix.obs }}-${{ matrix.arch }}
           path: package/*
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [linux_build, macos_build, windows_build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ env.artifactName }}-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release-assets/*

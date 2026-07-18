@@ -9,6 +9,7 @@ public:
 	enum detector_engine_e {
 		engine_dlib_hog = 0,
 		engine_dlib_cnn = 1,
+		engine_hybrid = 2,
 		engine_uninitialized = -1,
 	};
 
@@ -47,6 +48,8 @@ public: // properties
 	enum detector_engine_e detector_engine = engine_uninitialized;
 	std::string detector_dlib_hog_model;
 	std::string detector_dlib_cnn_model;
+	std::string detector_yunet_model;
+	std::string detector_nanodet_model;
 	int detector_crop_l, detector_crop_r, detector_crop_t, detector_crop_b;
 	char *landmark_detection_data;
 
@@ -55,7 +58,7 @@ public: // realtime status
 	int tick_cnt;
 
 public: // results
-	std::vector<rect_s> detect_rects;
+	std::vector<detection_s> detect_rects;
 	std::vector<tracker_rect_s> tracker_rects;
 
 public: /* not sure they are necessary to be public */

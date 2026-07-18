@@ -34,8 +34,11 @@ endif()
 
 find_package(libobs REQUIRED)
 find_package(obs-frontend-api REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc dnn objdetect)
 include(cmake/ObsPluginHelpers.cmake)
-find_qt(VERSION ${QT_VERSION} COMPONENTS Widgets Core Gui)
+if(WITH_DOCK)
+	find_qt(VERSION ${QT_VERSION} COMPONENTS Widgets Core Gui)
+endif()
 
 if (WITH_DLIB_SUBMODULE)
 	set(CMAKE_POSITION_INDEPENDENT_CODE True)
@@ -54,8 +57,8 @@ else()
 	add_library(dlib ALIAS dlib::dlib)
 endif()
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ${WITH_DOCK})
+set(CMAKE_AUTOUIC ${WITH_DOCK})
 
 configure_file(
 	src/plugin-macros.h.in
@@ -86,6 +89,7 @@ set(PLUGIN_SOURCES
 	src/face-detector-base.cpp
 	src/face-detector-dlib-hog.cpp
 	src/face-detector-dlib-cnn.cpp
+	src/face-detector-hybrid.cpp
 	src/face-tracker-base.cpp
 	src/face-tracker-dlib.cpp
 	src/texture-object.cpp
@@ -115,6 +119,7 @@ endif()
 
 include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/dlib
+	${OpenCV_INCLUDE_DIRS}
 	${plugin_additional_incs}
 )
 
@@ -122,6 +127,10 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 	OBS::libobs
 	OBS::obs-frontend-api
 	dlib
+	opencv_core
+	opencv_imgproc
+	opencv_dnn
+	opencv_objdetect
 	${plugin_additional_libs}
 )
 
@@ -156,10 +165,13 @@ endif()
 if(APPLE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -fvisibility=default")
 
+	set(MACOSX_PLUGIN_BUNDLE_TYPE "BNDL")
 	set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES PREFIX "")
 	set(MACOSX_PLUGIN_GUI_IDENTIFIER "${MACOS_BUNDLEID}")
 	set(MACOSX_PLUGIN_BUNDLE_VERSION "${CMAKE_PROJECT_VERSION}")
-	set(MACOSX_PLUGIN_SHORT_VERSION_STRING "1")
+	set(MACOSX_PLUGIN_SHORT_VERSION_STRING "${CMAKE_PROJECT_VERSION}")
+	set(MACOSX_BUNDLE_BUNDLE_VERSION "${CMAKE_PROJECT_VERSION}")
+	set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${CMAKE_PROJECT_VERSION}")
 endif()
 
 setup_plugin_target(${CMAKE_PROJECT_NAME})

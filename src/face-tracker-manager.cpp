@@ -1,8 +1,10 @@
 #include <obs-module.h>
+#include <algorithm>
 #include "plugin-macros.generated.h"
 #include "face-tracker-manager.hpp"
 #include "face-detector-dlib-hog.h"
 #include "face-detector-dlib-cnn.h"
+#include "face-detector-hybrid.h"
 #include "face-tracker-dlib.h"
 #include "texture-object.h"
 #include "helper.hpp"
@@ -16,6 +18,8 @@
 #define DIR_DLIB_HOG "dlib_hog_model"
 #define DIR_DLIB_CNN "dlib_cnn_model"
 #define DIR_DLIB_LANDMARK "dlib_face_landmark_model"
+#define DIR_HYBRID_YUNET "hybrid/yunet"
+#define DIR_HYBRID_NANODET "hybrid/nanodet"
 
 face_tracker_manager::face_tracker_manager()
 {
@@ -107,7 +111,9 @@ inline void face_tracker_manager::attenuate_tracker()
 		int a1 = (t.rect.x1 - t.rect.x0) * (t.rect.y1 - t.rect.y0);
 		float amax = (float)a1 * 0.1f;
 		for (size_t j = 0; j < detect_rects.size(); j++) {
-			rect_s r = detect_rects[j];
+			if (detect_rects[j].source == detection_source_e::source_hybrid_nanodet_person)
+				continue;
+			rect_s r = detect_rects[j].rect;
 			float a = (float)common_area(r, t.rect);
 			if (a > amax)
 				amax = a;
@@ -146,14 +152,22 @@ inline void face_tracker_manager::copy_detector_to_tracker()
 	if (i_tracker >= trackers.size())
 		return;
 
-	if (detect_rects.size() <= 0) {
+	auto detection = std::find_if(detect_rects.begin(), detect_rects.end(), [](const detection_s &d) {
+		return d.source == detection_source_e::source_hybrid_yunet;
+	});
+	if (detection == detect_rects.end()) {
+		detection = std::find_if(detect_rects.begin(), detect_rects.end(), [](const detection_s &d) {
+			return d.source != detection_source_e::source_hybrid_nanodet_person;
+		});
+	}
+	if (detection == detect_rects.end()) {
 		retire_tracker(i_tracker);
 		return;
 	}
 
 	struct tracker_inst_s &t = trackers[i_tracker];
 
-	struct rect_s r = detect_rects[0];
+	struct rect_s r = detection->rect;
 	int w = r.x1 - r.x0;
 	int h = r.y1 - r.y0;
 	r.x0 -= w * upsize_l;
@@ -175,8 +189,9 @@ inline void face_tracker_manager::stage_to_detector()
 	if (detector_in_progress) {
 		detect->get_faces(detect_rects);
 		for (size_t i = 0; i < detect_rects.size(); i++)
-			debug_detect("stage_to_detector: detect_rects %d %d %d %d %d %f", i, detect_rects[i].x0,
-				     detect_rects[i].y0, detect_rects[i].x1, detect_rects[i].y1, detect_rects[i].score);
+			debug_detect("stage_to_detector: detect_rects %d %d %d %d %d %f", i, detect_rects[i].rect.x0,
+				     detect_rects[i].rect.y0, detect_rects[i].rect.x1, detect_rects[i].rect.y1,
+				     detect_rects[i].rect.score);
 		attenuate_tracker();
 		copy_detector_to_tracker();
 		detector_in_progress = false;
@@ -195,6 +210,11 @@ inline void face_tracker_manager::stage_to_detector()
 		} else if (detector_engine == engine_dlib_cnn) {
 			if (auto *d = dynamic_cast<face_detector_dlib_cnn *>(detect))
 				d->set_model(detector_dlib_cnn_model.c_str());
+		} else if (detector_engine == engine_hybrid) {
+			if (auto *d = dynamic_cast<face_detector_hybrid *>(detect)) {
+				d->set_yunet_model(detector_yunet_model.c_str());
+				d->set_nanodet_model(detector_nanodet_model.c_str());
+			}
 		}
 		detect->signal();
 		detector_in_progress = true;
@@ -360,6 +380,9 @@ static void update_detector(face_tracker_manager *ftm, enum face_tracker_manager
 	case face_tracker_manager::engine_dlib_cnn:
 		ftm->detect = new face_detector_dlib_cnn();
 		break;
+	case face_tracker_manager::engine_hybrid:
+		ftm->detect = new face_detector_hybrid();
+		break;
 	default:
 		blog(LOG_ERROR, "unknown detector_engine %d", (int)detector_engine);
 	}
@@ -382,6 +405,8 @@ void face_tracker_manager::update(obs_data_t *settings)
 		update_detector(this, _detector_engine);
 	detector_dlib_hog_model = obs_data_get_string(settings, "detector_dlib_hog_model");
 	detector_dlib_cnn_model = obs_data_get_string(settings, "detector_dlib_cnn_model");
+	detector_yunet_model = obs_data_get_string(settings, "detector_yunet_model");
+	detector_nanodet_model = obs_data_get_string(settings, "detector_nanodet_model");
 	detector_crop_l = obs_data_get_int(settings, "detector_crop_l");
 	detector_crop_r = obs_data_get_int(settings, "detector_crop_r");
 	detector_crop_t = obs_data_get_int(settings, "detector_crop_t");
@@ -419,6 +444,7 @@ void face_tracker_manager::get_properties(obs_properties_t *pp)
 				    OBS_COMBO_FORMAT_INT);
 	obs_property_list_add_int(p, obs_module_text("Detector.dlib.hog"), (int)engine_dlib_hog);
 	obs_property_list_add_int(p, obs_module_text("Detector.dlib.cnn"), (int)engine_dlib_cnn);
+	obs_property_list_add_int(p, obs_module_text("Detector.hybrid"), (int)engine_hybrid);
 	obs_properties_add_path(pp, "detector_dlib_hog_model", obs_module_text("Dlib HOG model"), OBS_PATH_FILE,
 				"Data Files (*.dat);;"
 				"All Files (*.*)",
@@ -427,6 +453,14 @@ void face_tracker_manager::get_properties(obs_properties_t *pp)
 				"Data Files (*.dat);;"
 				"All Files (*.*)",
 				(data_path + "/" DIR_DLIB_CNN).c_str());
+	obs_properties_add_path(pp, "detector_yunet_model", obs_module_text("YuNet model"), OBS_PATH_FILE,
+				"ONNX Files (*.onnx);;"
+				"All Files (*.*)",
+				(data_path + "/" DIR_HYBRID_YUNET).c_str());
+	obs_properties_add_path(pp, "detector_nanodet_model", obs_module_text("NanoDet model"), OBS_PATH_FILE,
+				"ONNX Files (*.onnx);;"
+				"All Files (*.*)",
+				(data_path + "/" DIR_HYBRID_NANODET).c_str());
 	obs_properties_add_int(pp, "detector_crop_l", obs_module_text("Crop left for detector"), 0, 1920, 1);
 	obs_properties_add_int(pp, "detector_crop_r", obs_module_text("Crop right for detector"), 0, 1920, 1);
 	obs_properties_add_int(pp, "detector_crop_t", obs_module_text("Crop top for detector"), 0, 1080, 1);
@@ -475,5 +509,19 @@ void face_tracker_manager::get_defaults(obs_data_t *settings)
 		bfree(f);
 	} else {
 		blog(LOG_ERROR, "shape_predictor_5_face_landmarks.dat is not found in the data directory.");
+	}
+
+	if (char *f = obs_module_file(DIR_HYBRID_YUNET "/face_detection_yunet_2023mar.onnx")) {
+		obs_data_set_default_string(settings, "detector_yunet_model", f);
+		bfree(f);
+	} else {
+		blog(LOG_INFO, "YuNet model not found, user will need to provide it.");
+	}
+
+	if (char *f = obs_module_file(DIR_HYBRID_NANODET "/nanodet-plus-m_416.onnx")) {
+		obs_data_set_default_string(settings, "detector_nanodet_model", f);
+		bfree(f);
+	} else {
+		blog(LOG_INFO, "NanoDet model not found, user will need to provide it.");
 	}
 }

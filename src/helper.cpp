@@ -2,6 +2,117 @@
 #include "plugin-macros.generated.h"
 #include "helper.hpp"
 
+uint32_t detection_source_color(detection_source_e::value src)
+{
+	switch (src) {
+	case detection_source_e::source_dlib_hog:
+		return 0xFFFF0000; // red
+	case detection_source_e::source_dlib_cnn:
+		return 0xFFFF8800; // orange
+	case detection_source_e::source_hybrid_yunet:
+		return 0xFFFFFF00; // yellow
+	case detection_source_e::source_hybrid_nanodet_person:
+		return 0xFF0000FF; // blue
+	case detection_source_e::source_hybrid_nanodet_estimated:
+		return 0xFF00FF00; // green
+	default:
+		return 0xFFFFFFFF; // white
+	}
+}
+
+int detection_source_line_style(detection_source_e::value src)
+{
+	// 0 = solid, 1 = dashed, 2 = dotted
+	switch (src) {
+	case detection_source_e::source_dlib_hog:
+		return 1;
+	case detection_source_e::source_dlib_cnn:
+		return 2;
+	case detection_source_e::source_hybrid_yunet:
+		return 0;
+	case detection_source_e::source_hybrid_nanodet_person:
+		return 1;
+	case detection_source_e::source_hybrid_nanodet_estimated:
+		return 2;
+	default:
+		return 0;
+	}
+}
+
+static void draw_rect_styled_1px(float x0, float y0, float x1, float y1, int line_style)
+{
+	switch (line_style) {
+	case 1: { // dashed
+		const float dash = 12.0f;
+		const float gap = 8.0f;
+		gs_render_start(false);
+		for (float x = x0; x < x1; x += dash + gap) {
+			float end = std::min(x + dash, x1);
+			gs_vertex2f(x, y0);
+			gs_vertex2f(end, y0);
+			gs_vertex2f(x, y1);
+			gs_vertex2f(end, y1);
+		}
+		for (float y = y0; y < y1; y += dash + gap) {
+			float end = std::min(y + dash, y1);
+			gs_vertex2f(x0, y);
+			gs_vertex2f(x0, end);
+			gs_vertex2f(x1, y);
+			gs_vertex2f(x1, end);
+		}
+		gs_render_stop(GS_LINES);
+		break;
+	}
+	case 2: { // dotted: draw points at corners + midpoints
+		float mx = (x0 + x1) * 0.5f;
+		float my = (y0 + y1) * 0.5f;
+		gs_render_start(false);
+		gs_vertex2f(x0, y0);
+		gs_vertex2f(x0 + 1, y0);
+		gs_vertex2f(x1, y0);
+		gs_vertex2f(x1 - 1, y0);
+		gs_vertex2f(x1, y1);
+		gs_vertex2f(x1 - 1, y1);
+		gs_vertex2f(x0, y1);
+		gs_vertex2f(x0 + 1, y1);
+		gs_vertex2f(mx, y0);
+		gs_vertex2f(mx + 1, y0);
+		gs_vertex2f(x1, my);
+		gs_vertex2f(x1 - 1, my);
+		gs_vertex2f(mx, y1);
+		gs_vertex2f(mx + 1, y1);
+		gs_vertex2f(x0, my);
+		gs_vertex2f(x0 + 1, my);
+		gs_render_stop(GS_LINES);
+		break;
+	}
+	default: // solid
+		gs_render_start(false);
+		gs_vertex2f(x0, y0);
+		gs_vertex2f(x0, y1);
+		gs_vertex2f(x0, y1);
+		gs_vertex2f(x1, y1);
+		gs_vertex2f(x1, y1);
+		gs_vertex2f(x1, y0);
+		gs_vertex2f(x1, y0);
+		gs_vertex2f(x0, y0);
+		gs_render_stop(GS_LINES);
+		break;
+	}
+}
+
+void draw_rect_styled(rect_s r, uint32_t color, int line_style)
+{
+	UNUSED_PARAMETER(color);
+	if (r.x0 >= r.x1 || r.y0 >= r.y1)
+		return;
+
+	for (int offset = -2; offset <= 2; offset++) {
+		draw_rect_styled_1px((float)r.x0 + offset, (float)r.y0 + offset, (float)r.x1 - offset,
+				     (float)r.y1 - offset, line_style);
+	}
+}
+
 void draw_rect_upsize(rect_s r, float upsize_l, float upsize_r, float upsize_t, float upsize_b)
 {
 	if (r.x0 >= r.x1 || r.y0 >= r.y1)
@@ -13,32 +124,14 @@ void draw_rect_upsize(rect_s r, float upsize_l, float upsize_r, float upsize_t, 
 	float dy0 = h * upsize_t;
 	float dy1 = h * upsize_b;
 
-	gs_render_start(false);
+	if (std::abs(dx0) >= 0.5f || std::abs(dy1) >= 0.5f || std::abs(dx1) >= 0.5f || std::abs(dy0) >= 0.5f)
+		draw_rect_styled(r, 0, 0);
 
-	if (std::abs(dx0) >= 0.5f || std::abs(dy1) >= 0.5f || std::abs(dx1) >= 0.5f || std::abs(dy0) >= 0.5f) {
-		gs_vertex2f((float)r.x0, (float)r.y0);
-		gs_vertex2f((float)r.x0, (float)r.y1);
-		gs_vertex2f((float)r.x0, (float)r.y1);
-		gs_vertex2f((float)r.x1, (float)r.y1);
-		gs_vertex2f((float)r.x1, (float)r.y1);
-		gs_vertex2f((float)r.x1, (float)r.y0);
-		gs_vertex2f((float)r.x1, (float)r.y0);
-		gs_vertex2f((float)r.x0, (float)r.y0);
-	}
 	r.x0 -= (int)dx0;
 	r.x1 += (int)dx1;
 	r.y0 -= (int)dy0;
 	r.y1 += (int)dy1;
-	gs_vertex2f((float)r.x0, (float)r.y0);
-	gs_vertex2f((float)r.x0, (float)r.y1);
-	gs_vertex2f((float)r.x0, (float)r.y1);
-	gs_vertex2f((float)r.x1, (float)r.y1);
-	gs_vertex2f((float)r.x1, (float)r.y1);
-	gs_vertex2f((float)r.x1, (float)r.y0);
-	gs_vertex2f((float)r.x1, (float)r.y0);
-	gs_vertex2f((float)r.x0, (float)r.y0);
-
-	gs_render_stop(GS_LINES);
+	draw_rect_styled(r, 0, 0);
 }
 
 float landmark_area(const std::vector<pointf_s> &landmark)

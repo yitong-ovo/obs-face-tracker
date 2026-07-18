@@ -14,6 +14,8 @@ public:
 
 	void set_texture_obsframe(const struct obs_source_frame *frame, int scale);
 	bool get_dlib_rgb_image(dlib::matrix<dlib::rgb_pixel> &img) const;
+	bool get_raw_frame(const uint8_t *&data, int &width, int &height, int &linesize, enum video_format &format,
+			   float &coordinate_scale) const;
 
 public:
 	int tick;

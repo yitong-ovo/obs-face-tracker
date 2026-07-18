@@ -4,7 +4,9 @@
 
 This plugin provide a feature to track face of a person by detecting and tracking a face.
 
-This plugin employs [dlib](http://dlib.net/) on face detection and object tracking.
+This plugin employs [dlib](http://dlib.net/) for object tracking. Face detection
+can use dlib or a wide-angle hybrid of YuNet face detection and NanoDet person
+detection.
 The frame of the source is periodically taken to face detection algorithm.
 Once a face is found, the face is tracked.
 Based on the location and the size of the face under tracking, the frame will be cropped.
@@ -44,16 +46,25 @@ for current limitations of PTZ control feature.
 - [Install procedure for macOS](https://github.com/norihiro/obs-face-tracker/wiki/Install-MacOS)
 - [FAQ](https://github.com/norihiro/obs-face-tracker/wiki/FAQ)
 
+## Hybrid detector quick start
+
+Release packages include the YuNet and NanoDet models. Add the **Face Tracker**
+filter, open **Face detection options**, and choose **Hybrid wide-angle
+detection (YuNet face + NanoDet person)**. See
+[Installation and configuration](doc/install-and-configure.md) for complete
+platform instructions and recommended settings.
+
 ## Building
 
-This plugin requires [dlib](http://dlib.net/) to be built.
+This plugin requires [dlib](http://dlib.net/) and OpenCV (core, imgproc, dnn,
+and objdetect) to be built.
 The `dlib` should be extracted under `obs-face-tracker` so that it will be linked statically.
 I modified `dlib` so that `openblasp` won't be linked but `openblas`.
 
 For macOS,
-install openblas and configure the path.
+install OpenBLAS and OpenCV and configure the path.
 ```
-brew install openblas
+brew install openblas opencv
 export OPENBLAS_HOME=/usr/local/opt/openblas/
 ```
 
@@ -69,7 +80,8 @@ cd "$d0"
 
 git clone https://github.com/norihiro/obs-face-tracker.git
 cd obs-face-tracker
-git submodule update --init
+git submodule update --init --recursive
+bash ci/download-models.sh
 mkdir build && cd build
 cmake .. \
 	-DLIBOBS_INCLUDE_DIR=$d0/obs-studio/libobs \
@@ -80,6 +92,10 @@ make
 ```
 
 For Windows, see `.github/workflows/main.yml`.
+
+The GitHub Actions workflow builds Linux, macOS, and Windows artifacts. Pushing
+a version tag such as `v0.10.0` also creates a GitHub Release and attaches all
+packages after every platform build succeeds.
 
 ## Preparing data file
 

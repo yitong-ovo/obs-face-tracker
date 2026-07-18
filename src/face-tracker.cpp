@@ -245,18 +245,18 @@ static obs_properties_t *ftf_properties(void *data)
 
 	{
 		obs_properties_t *pp = obs_properties_create();
-		obs_properties_add_float(pp, "Kp", "Track Kp", 0.01, 10.0, 0.1);
-		obs_properties_add_float(pp, "Ki", "Track Ki", 0.0, 5.0, 0.01);
-		obs_properties_add_float(pp, "Td", "Track Td", 0.0, 5.0, 0.01);
-		obs_properties_add_float(pp, "Tdlpf", "Track LPF for Td (X, Y)", 0.0, 10.0, 0.1);
-		obs_properties_add_float(pp, "Tdlpf_z", "Track LPF for Td (Z)", 0.0, 10.0, 0.1);
-		obs_properties_add_float(pp, "att2_dB", "Attenuation (Z)", -60.0, 10.0, 1.0);
-		obs_properties_add_float(pp, "e_deadband_x", "Dead band (X)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "e_deadband_y", "Dead band (Y)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "e_deadband_z", "Dead band (Z)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "e_nonlinear_x", "Nonlinear band (X)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "e_nonlinear_y", "Nonlinear band (Y)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "e_nonlinear_z", "Nonlinear band (Z)", 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "Kp", obs_module_text("Track Kp"), 0.01, 10.0, 0.1);
+		obs_properties_add_float(pp, "Ki", obs_module_text("Track Ki"), 0.0, 5.0, 0.01);
+		obs_properties_add_float(pp, "Td", obs_module_text("Track Td"), 0.0, 5.0, 0.01);
+		obs_properties_add_float(pp, "Tdlpf", obs_module_text("Track LPF for Td (X, Y)"), 0.0, 10.0, 0.1);
+		obs_properties_add_float(pp, "Tdlpf_z", obs_module_text("Track LPF for Td (Z)"), 0.0, 10.0, 0.1);
+		obs_properties_add_float(pp, "att2_dB", obs_module_text("Attenuation (Z)"), -60.0, 10.0, 1.0);
+		obs_properties_add_float(pp, "e_deadband_x", obs_module_text("Dead band (X)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "e_deadband_y", obs_module_text("Dead band (Y)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "e_deadband_z", obs_module_text("Dead band (Z)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "e_nonlinear_x", obs_module_text("Nonlinear band (X)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "e_nonlinear_y", obs_module_text("Nonlinear band (Y)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "e_nonlinear_z", obs_module_text("Nonlinear band (Z)"), 0.0, 50, 0.1);
 		obs_properties_add_group(props, "ctrl", obs_module_text("Tracking response"), OBS_GROUP_NORMAL, pp);
 	}
 
@@ -279,9 +279,11 @@ static obs_properties_t *ftf_properties(void *data)
 
 	{
 		obs_properties_t *pp = obs_properties_create();
-		obs_properties_add_bool(pp, "debug_faces", "Show face detection results");
-		obs_properties_add_bool(pp, "debug_notrack", "Stop tracking faces");
-		obs_properties_add_bool(pp, "debug_always_show", "Always show information (useful for demo)");
+		obs_properties_add_bool(pp, "debug_faces", obs_module_text("Show face detection results"));
+		obs_properties_add_text(pp, "debug_box_legend", obs_module_text("Debug box legend"), OBS_TEXT_INFO);
+		obs_properties_add_bool(pp, "debug_notrack", obs_module_text("Stop tracking faces"));
+		obs_properties_add_bool(pp, "debug_always_show",
+					obs_module_text("Always show information (useful for demo)"));
 #ifdef ENABLE_DEBUG_DATA
 		obs_properties_add_path(pp, "debug_data_tracker", "Save correlation tracker data to file",
 					OBS_PATH_FILE_SAVE, DEBUG_DATA_PATH_FILTER, NULL);
@@ -826,10 +828,13 @@ static inline void draw_frame_info(struct face_tracker_filter *s, bool debug_not
 	gs_effect_t *effect = obs_get_base_effect(OBS_EFFECT_SOLID);
 	while (gs_effect_loop(effect, "Solid")) {
 		if (draw_det) {
-			gs_effect_set_color(gs_effect_get_param_by_name(effect, "color"), 0xFF0000FF);
-			for (size_t i = 0; i < s->ftm->detect_rects.size(); i++)
-				draw_rect_upsize(s->ftm->detect_rects[i], s->ftm->upsize_l, s->ftm->upsize_r,
-						 s->ftm->upsize_t, s->ftm->upsize_b);
+			for (size_t i = 0; i < s->ftm->detect_rects.size(); i++) {
+				const auto &det = s->ftm->detect_rects[i];
+				uint32_t color = detection_source_color(det.source);
+				int style = detection_source_line_style(det.source);
+				gs_effect_set_color(gs_effect_get_param_by_name(effect, "color"), color);
+				draw_rect_styled(det.rect, color, style);
+			}
 		}
 
 		gs_effect_set_color(gs_effect_get_param_by_name(effect, "color"), 0xFF00FF00);

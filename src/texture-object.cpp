@@ -112,3 +112,18 @@ bool texture_object::get_dlib_rgb_image(dlib::matrix<dlib::rgb_pixel> &img) cons
 
 	return true;
 }
+
+bool texture_object::get_raw_frame(const uint8_t *&data, int &width, int &height, int &linesize,
+				   enum video_format &format, float &coordinate_scale) const
+{
+	if (!this->data->obs_frame)
+		return false;
+	const auto *frame = this->data->obs_frame;
+	data = frame->data[0];
+	width = frame->width;
+	height = frame->height;
+	linesize = frame->linesize[0];
+	format = frame->format;
+	coordinate_scale = scale / this->data->scale;
+	return true;
+}

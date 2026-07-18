@@ -28,7 +28,7 @@ public:
 
 	virtual void set_texture(std::shared_ptr<class texture_object> &, int crop_l, int crop_r, int crop_t,
 				 int crop_b) = 0;
-	virtual void get_faces(std::vector<struct rect_s> &) = 0;
+	virtual void get_faces(std::vector<struct detection_s> &) = 0;
 
 	void start();
 	void stop();

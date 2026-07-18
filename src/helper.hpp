@@ -28,6 +28,26 @@ struct rect_s
 	float score;
 };
 
+struct detection_source_e
+{
+	enum value {
+		source_dlib_hog = 0,
+		source_dlib_cnn = 1,
+		source_hybrid_yunet = 2,
+		source_hybrid_nanodet_person = 3,
+		source_hybrid_nanodet_estimated = 4,
+	};
+};
+
+struct detection_s
+{
+	rect_s rect;
+	detection_source_e::value source;
+	float confidence;
+	rect_s original_box;
+	detection_s() : rect{}, source(detection_source_e::source_dlib_hog), confidence(0.0f), original_box{} {}
+};
+
 struct rectf_s
 {
 	float x0;
@@ -146,6 +166,9 @@ static inline rectf_s f3_to_rectf(const f3 &u, float w, float h)
 
 void draw_rect_upsize(rect_s r, float upsize_l = 0.0f, float upsize_r = 0.0f, float upsize_t = 0.0f,
 		      float upsize_b = 0.0f);
+void draw_rect_styled(rect_s r, uint32_t color, int line_style);
+uint32_t detection_source_color(detection_source_e::value src);
+int detection_source_line_style(detection_source_e::value src);
 void draw_landmark(const std::vector<pointf_s> &landmark);
 float landmark_area(const std::vector<pointf_s> &landmark);
 pointf_s landmark_center(const std::vector<pointf_s> &landmark);

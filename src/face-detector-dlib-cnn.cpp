@@ -125,9 +125,15 @@ void face_detector_dlib_cnn::detect_main()
 	p->tex.reset();
 }
 
-void face_detector_dlib_cnn::get_faces(std::vector<struct rect_s> &rects)
+void face_detector_dlib_cnn::get_faces(std::vector<struct detection_s> &detections)
 {
-	rects = p->rects;
+	detections.resize(p->rects.size());
+	for (size_t i = 0; i < p->rects.size(); i++) {
+		detections[i].rect = p->rects[i];
+		detections[i].source = detection_source_e::source_dlib_cnn;
+		detections[i].confidence = p->rects[i].score;
+		detections[i].original_box = p->rects[i];
+	}
 }
 
 void face_detector_dlib_cnn::set_model(const char *filename)

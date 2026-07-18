@@ -402,40 +402,43 @@ static obs_properties_t *ftptz_properties(void *data)
 	{
 		obs_properties_t *pp = obs_properties_create();
 		obs_property_t *p;
-		p = obs_properties_add_float(pp, "Kp_x_db", "Track Kp (X)", -40.0, +80.0, 1.0);
+		p = obs_properties_add_float(pp, "Kp_x_db", obs_module_text("Track Kp (X)"), -40.0, +80.0, 1.0);
 		obs_property_float_set_suffix(p, " dB");
-		p = obs_properties_add_float(pp, "Kp_y_db", "Track Kp (Y)", -40.0, +80.0, 1.0);
+		p = obs_properties_add_float(pp, "Kp_y_db", obs_module_text("Track Kp (Y)"), -40.0, +80.0, 1.0);
 		obs_property_float_set_suffix(p, " dB");
-		p = obs_properties_add_float(pp, "Kp_z_db", "Track Kp (Z)", -40.0, +60.0, 1.0);
+		p = obs_properties_add_float(pp, "Kp_z_db", obs_module_text("Track Kp (Z)"), -40.0, +60.0, 1.0);
 		obs_property_float_set_suffix(p, " dB");
-		obs_properties_add_float(pp, "Ki_x", "Track Ki (X)", 0.0, 5.0, 0.01);
-		obs_properties_add_float(pp, "Ki_y", "Track Ki (Y)", 0.0, 5.0, 0.01);
-		obs_properties_add_float(pp, "Ki_z", "Track Ki (Z)", 0.0, 5.0, 0.01);
-		obs_properties_add_float(pp, "Td_x", "Track Td (X)", 0.0, 5.0, 0.01);
-		obs_properties_add_float(pp, "Td_y", "Track Td (Y)", 0.0, 5.0, 0.01);
-		obs_properties_add_float(pp, "Td_z", "Track Td (Z)", 0.0, 5.0, 0.01);
-		obs_properties_add_float(pp, "Tdlpf", "Track LPF for Td (X, Y)", 0.0, 10.0, 0.1);
-		obs_properties_add_float(pp, "Tdlpf_z", "Track LPF for Td (Z)", 0.0, 10.0, 0.1);
-		obs_properties_add_float(pp, "e_deadband_x", "Dead band (X)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "e_deadband_y", "Dead band (Y)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "e_deadband_z", "Dead band (Z)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "e_nonlinear_x", "Nonlinear band (X)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "e_nonlinear_y", "Nonlinear band (Y)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "e_nonlinear_z", "Nonlinear band (Z)", 0.0, 50, 0.1);
-		obs_properties_add_float(pp, "Tatt_int", "Attenuation time for lost face", 0.0, 4.0, 0.5);
+		obs_properties_add_float(pp, "Ki_x", obs_module_text("Track Ki (X)"), 0.0, 5.0, 0.01);
+		obs_properties_add_float(pp, "Ki_y", obs_module_text("Track Ki (Y)"), 0.0, 5.0, 0.01);
+		obs_properties_add_float(pp, "Ki_z", obs_module_text("Track Ki (Z)"), 0.0, 5.0, 0.01);
+		obs_properties_add_float(pp, "Td_x", obs_module_text("Track Td (X)"), 0.0, 5.0, 0.01);
+		obs_properties_add_float(pp, "Td_y", obs_module_text("Track Td (Y)"), 0.0, 5.0, 0.01);
+		obs_properties_add_float(pp, "Td_z", obs_module_text("Track Td (Z)"), 0.0, 5.0, 0.01);
+		obs_properties_add_float(pp, "Tdlpf", obs_module_text("Track LPF for Td (X, Y)"), 0.0, 10.0, 0.1);
+		obs_properties_add_float(pp, "Tdlpf_z", obs_module_text("Track LPF for Td (Z)"), 0.0, 10.0, 0.1);
+		obs_properties_add_float(pp, "e_deadband_x", obs_module_text("Dead band (X)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "e_deadband_y", obs_module_text("Dead band (Y)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "e_deadband_z", obs_module_text("Dead band (Z)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "e_nonlinear_x", obs_module_text("Nonlinear band (X)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "e_nonlinear_y", obs_module_text("Nonlinear band (Y)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "e_nonlinear_z", obs_module_text("Nonlinear band (Z)"), 0.0, 50, 0.1);
+		obs_properties_add_float(pp, "Tatt_int", obs_module_text("Attenuation time for lost face"), 0.0, 4.0,
+					 0.5);
 		obs_properties_add_group(props, "ctrl", obs_module_text("Tracking response"), OBS_GROUP_NORMAL, pp);
 	}
 
 	{
 		obs_properties_t *pp = obs_properties_create();
 		obs_property_t *p;
-		p = obs_properties_add_float(pp, "face_lost_preset_timeout", "Timeout until recalling memory", 0.1,
-					     60.0, 0.1);
+		p = obs_properties_add_float(pp, "face_lost_preset_timeout",
+					     obs_module_text("Timeout until recalling memory"), 0.1, 60.0, 0.1);
 		obs_property_float_set_suffix(p, " s");
-		obs_properties_add_int(pp, "face_lost_ptz_preset", "Recall memory (-1 for disable)", -1, 15, 1);
+		obs_properties_add_int(pp, "face_lost_ptz_preset", obs_module_text("Recall memory (-1 for disable)"),
+				       -1, 15, 1);
 		obs_properties_add_group(props, "facelost", obs_module_text("Face lost behavior"), OBS_GROUP_NORMAL,
 					 pp);
-		p = obs_properties_add_float(pp, "face_lost_zoomout_timeout", "Timeout until zoom-out", 0.0, 60.0, 0.1);
+		p = obs_properties_add_float(pp, "face_lost_zoomout_timeout", obs_module_text("Timeout until zoom-out"),
+					     0.0, 60.0, 0.1);
 		obs_property_float_set_suffix(p, " s");
 	}
 
@@ -458,8 +461,10 @@ static obs_properties_t *ftptz_properties(void *data)
 
 	{
 		obs_properties_t *pp = obs_properties_create();
-		obs_properties_add_bool(pp, "debug_faces", "Show face detection results");
-		obs_properties_add_bool(pp, "debug_always_show", "Always show information (useful for demo)");
+		obs_properties_add_bool(pp, "debug_faces", obs_module_text("Show face detection results"));
+		obs_properties_add_text(pp, "debug_box_legend", obs_module_text("Debug box legend"), OBS_TEXT_INFO);
+		obs_properties_add_bool(pp, "debug_always_show",
+					obs_module_text("Always show information (useful for demo)"));
 #ifdef ENABLE_DEBUG_DATA
 		obs_properties_add_path(pp, "debug_data_tracker", "Save correlation tracker data to file",
 					OBS_PATH_FILE_SAVE, DEBUG_DATA_PATH_FILTER, NULL);
@@ -1046,10 +1051,13 @@ static void draw_frame_info(struct face_tracker_ptz *s, bool landmark_only = fal
 	gs_effect_t *effect = obs_get_base_effect(OBS_EFFECT_SOLID);
 	while (gs_effect_loop(effect, "Solid")) {
 		if (draw_det) {
-			gs_effect_set_color(gs_effect_get_param_by_name(effect, "color"), 0xFF0000FF);
-			for (size_t i = 0; i < s->ftm->detect_rects.size(); i++)
-				draw_rect_upsize(s->ftm->detect_rects[i], s->ftm->upsize_l, s->ftm->upsize_r,
-						 s->ftm->upsize_t, s->ftm->upsize_b);
+			for (size_t i = 0; i < s->ftm->detect_rects.size(); i++) {
+				const auto &det = s->ftm->detect_rects[i];
+				uint32_t color = detection_source_color(det.source);
+				int style = detection_source_line_style(det.source);
+				gs_effect_set_color(gs_effect_get_param_by_name(effect, "color"), color);
+				draw_rect_styled(det.rect, color, style);
+			}
 		}
 
 		gs_effect_set_color(gs_effect_get_param_by_name(effect, "color"), 0xFF00FF00);

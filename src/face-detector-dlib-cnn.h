@@ -13,7 +13,7 @@ public:
 	face_detector_dlib_cnn();
 	virtual ~face_detector_dlib_cnn();
 	void set_texture(std::shared_ptr<texture_object> &, int crop_l, int crop_r, int crop_t, int crop_b) override;
-	void get_faces(std::vector<struct rect_s> &) override;
+	void get_faces(std::vector<struct detection_s> &) override;
 
 	void set_model(const char *filename);
 };
