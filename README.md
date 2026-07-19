@@ -28,6 +28,7 @@ and validation matrix.
 - [Installation and configuration](doc/install-and-configure.md)
 - [Face Tracker properties](doc/properties.md)
 - [Face Tracker PTZ properties](doc/properties-ptz.md)
+- [Model files: purpose, source, licenses, and checksums](doc/models.md)
 - [Hybrid models and visualization](doc/hybrid-models.md)
 - [Troubleshooting](doc/troubleshooting.md)
 - [Build from source](doc/build-from-source.md)

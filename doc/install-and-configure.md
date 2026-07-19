@@ -7,6 +7,10 @@ operating system and CPU. Packages created from a version tag contain the
 plugin, translations, YuNet, NanoDet, dlib models, and the corresponding model
 license files.
 
+See [Model files](models.md) for each model's purpose, exact upstream source,
+license status, checksum availability, and the important distinction between
+face detection and identity recognition.
+
 > [!WARNING]
 > Windows x64, Intel macOS, and interactive Linux operation have not yet been
 > tested on real machines in this fork. Those packages pass CI builds only.
@@ -130,6 +134,10 @@ git submodule update --init --recursive
 bash ci/download-dlib-models.sh
 bash ci/download-models.sh
 ```
+
+The Hybrid script verifies fixed checksums. The dlib script currently does not;
+see [Model files](models.md) for provenance, licensing, and reproducibility
+details.
 
 Install OpenCV development files before configuring CMake:
 

@@ -28,6 +28,10 @@ bash ci/download-models.sh
 ```
 
 The model scripts place data under `data/`, which CMake includes in packages.
+See [Model files](models.md) for model provenance, licenses, Hybrid checksums,
+the optional restricted 68-point models, and instructions for generating the
+dlib HOG data directly. The dlib script does not currently pin or checksum its
+downloads; the Hybrid script does both.
 
 ## macOS
 
